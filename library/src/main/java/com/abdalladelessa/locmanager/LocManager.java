@@ -9,6 +9,7 @@ import com.abdalladelessa.locmanager.providers.FuseLocationProvider;
 import com.abdalladelessa.locmanager.providers.ILocationProvider;
 import com.abdalladelessa.locmanager.providers.StandardLocationProvider;
 
+import java.lang.ref.WeakReference;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -22,9 +23,9 @@ import rx.functions.Func1;
  * Created by Abdullah.Essa on 4/24/2016.
  */
 public class LocManager {
+    private Handler mainHandler = new Handler();
     private ILocationProvider currentLocationProvider;
     private Timer settingsCheckerTimer;
-    private Handler mainHandler = new Handler();
 
     public static LocManager getFuseGoogleApiBasedLocationManager() {
         return new LocManager(new FuseLocationProvider());
@@ -50,6 +51,8 @@ public class LocManager {
         this.currentLocationProvider = currentLocationProvider;
     }
 
+    // ---------------------> Choose Best Provider
+
     static ILocationProvider getBestLocationProvider(Context context) {
         ILocationProvider iLocationProvider = null;
         if(context != null) {
@@ -61,37 +64,6 @@ public class LocManager {
             }
         }
         return iLocationProvider;
-    }
-
-    // ---------------------> Settings Timer
-
-    private void runLocationSettingsTimer(final Runnable runnable) {
-        cancelLocationSettingsTimer();
-        settingsCheckerTimer = new Timer();
-        settingsCheckerTimer.scheduleAtFixedRate(new TimerTask() {
-            @Override
-            public void run() {
-                mainHandler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            if(runnable != null) {
-                                runnable.run();
-                            }
-                        }
-                        catch(Exception e) {
-                            LocUtils.logError(e);
-                        }
-                    }
-                });
-            }
-        }, LocUtils.DELAY_IN_MILLIS, LocUtils.TIMEOUT_IN_MILLIS);
-    }
-
-    private void cancelLocationSettingsTimer() {
-        if(settingsCheckerTimer != null) {
-            settingsCheckerTimer.cancel();
-        }
     }
 
     // --------------------->
@@ -123,34 +95,83 @@ public class LocManager {
         }).flatMap(new Func1<Boolean, Observable<Location>>() {
             @Override
             public Observable<Location> call(Boolean aBoolean) {
-                return currentLocationProvider.getLocation(context);
+                return currentLocationProvider.getLocation(new WeakReference<>(context));
             }
-        }).doOnSubscribe(new Action0() {
+        }).compose(checkLocationSettings(new Runnable() {
             @Override
-            public void call() {
-                runLocationSettingsTimer(new Runnable() {
-                    @Override
-                    public void run() {
-                        if(context != null && currentLocationProvider != null && context instanceof Activity && !LocUtils.checkLocationSettingsIsEnabled(context)) {
-                            currentLocationProvider.askUserToEnableLocationSettingsIfNot((Activity) context);
-                        }
-                    }
-                });
+            public void run() {
+                if(context != null && currentLocationProvider != null && context instanceof Activity && !LocUtils.checkLocationSettingsIsEnabled(context)) {
+                    currentLocationProvider.askUserToEnableLocationSettingsIfNot((Activity) context);
+                }
             }
-        }).doOnUnsubscribe(new Action0() {
-            @Override
-            public void call() {
-                cancelLocationSettingsTimer();
-            }
-        }).doOnError(new Action1<Throwable>() {
-            @Override
-            public void call(Throwable throwable) {
-                cancelLocationSettingsTimer();
-            }
-        });
+        }));
     }
 
     public Observable<Location> getSingleLocation(final Context context) {
         return getLocationUpdates(context).first();
     }
+
+    // ---------------------> Location Settings Timer
+
+    public Observable.Transformer<Location, Location> checkLocationSettings(final Runnable onSettingsNotEnabledAction) {
+        return new Observable.Transformer<Location, Location>() {
+            @Override
+            public Observable<Location> call(Observable<Location> observable) {
+                return observable.doOnSubscribe(new Action0() {
+                    @Override
+                    public void call() {
+                        runLocationSettingsTimer(onSettingsNotEnabledAction);
+                    }
+                }).doOnUnsubscribe(new Action0() {
+                    @Override
+                    public void call() {
+                        cancelLocationSettingsTimer();
+                    }
+                }).doOnError(new Action1<Throwable>() {
+                    @Override
+                    public void call(Throwable throwable) {
+                        cancelLocationSettingsTimer();
+                    }
+                }).doOnTerminate(new Action0() {
+                    @Override
+                    public void call() {
+                        cancelLocationSettingsTimer();
+                    }
+                });
+            }
+        };
+    }
+
+    private void runLocationSettingsTimer(final Runnable runnable) {
+        cancelLocationSettingsTimer();
+        settingsCheckerTimer = new Timer();
+        settingsCheckerTimer.scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                if(mainHandler != null) {
+                    mainHandler.post(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                if(runnable != null) {
+                                    runnable.run();
+                                }
+                            }
+                            catch(Exception e) {
+                                LocUtils.logError(e);
+                            }
+                        }
+                    });
+                }
+            }
+        }, LocUtils.DELAY_IN_MILLIS, LocUtils.TIMEOUT_IN_MILLIS);
+    }
+
+    private void cancelLocationSettingsTimer() {
+        if(settingsCheckerTimer != null) {
+            settingsCheckerTimer.cancel();
+        }
+    }
+
+
 }

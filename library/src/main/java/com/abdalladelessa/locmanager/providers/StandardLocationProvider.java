@@ -13,9 +13,6 @@ import android.support.v7.app.AlertDialog;
 
 import com.abdalladelessa.locmanager.LocUtils;
 
-import java.util.Timer;
-import java.util.TimerTask;
-
 import rx.Observable;
 import rx.Subscriber;
 import rx.functions.Action0;
@@ -39,8 +36,8 @@ public class StandardLocationProvider implements ILocationProvider {
             @Override
             public void call(final Subscriber<? super Location> subscriber) {
                 try {
-                    lastLocation = null;
                     locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+                    lastLocation = null;
                     locationListener = new LocationListener() {
                         @Override
                         public void onLocationChanged(Location location) {
@@ -54,7 +51,7 @@ public class StandardLocationProvider implements ILocationProvider {
                         @Override
                         public void onProviderEnabled(String provider) {
                             LocUtils.log("onProviderEnabled : " + provider);
-                            Location location = getLastLocation(context);
+                            Location location = getLastLocation();
                             doUpdateLocation(location, subscriber);
                         }
 
@@ -66,7 +63,7 @@ public class StandardLocationProvider implements ILocationProvider {
                     for(String provider : locationManager.getAllProviders()) {
                         locationManager.requestLocationUpdates(provider, LocUtils.TIME_BETWEEN_UPDATES_IN_MILLIS, MIN_DISTANCE_FOR_UPDATES_IN_METERS, locationListener);
                     }
-                    Location location = getLastLocation(context);
+                    Location location = getLastLocation();
                     doUpdateLocation(location, subscriber);
                 }
                 catch(SecurityException e) {
@@ -198,9 +195,9 @@ public class StandardLocationProvider implements ILocationProvider {
 
     // -------------------> Last Known Location
 
-    private Location getLastLocation(Context context) {
-        Location gpsLocation = getLastLocationByProvider(context, LocationManager.GPS_PROVIDER);
-        Location networkLocation = getLastLocationByProvider(context, LocationManager.NETWORK_PROVIDER);
+    private Location getLastLocation() {
+        Location gpsLocation = getLastLocationByProvider(LocationManager.GPS_PROVIDER);
+        Location networkLocation = getLastLocationByProvider(LocationManager.NETWORK_PROVIDER);
         // if we have only one location available, the choice is easy
         if(gpsLocation == null && networkLocation == null) {
             return null;
@@ -225,9 +222,8 @@ public class StandardLocationProvider implements ILocationProvider {
         }
     }
 
-    private Location getLastLocationByProvider(Context context, String provider) {
+    private Location getLastLocationByProvider(String provider) {
         Location location = null;
-        LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
         try {
             if(locationManager.isProviderEnabled(provider)) {
                 location = locationManager.getLastKnownLocation(provider);

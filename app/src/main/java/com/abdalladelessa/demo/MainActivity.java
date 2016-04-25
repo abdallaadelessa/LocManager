@@ -28,7 +28,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         setContentView(R.layout.activity_main);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
-        locManager = LocManager.getStandardBasedLocationManager();
+        locManager = LocManager.getBestManager(this);
         fab = (FloatingActionButton) findViewById(R.id.fab);
         tvLabel = (TextView) findViewById(R.id.tvLabel);
         fab.setOnClickListener(this);
