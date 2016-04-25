@@ -23,7 +23,6 @@ import rx.functions.Action1;
  */
 public class StandardLocationProvider implements ILocationProvider {
     private static final int TWO_MINUTES = 1000 * 60 * 2;
-    public static final int MIN_DISTANCE_FOR_UPDATES_IN_METERS = 10;
     private Location lastLocation;
     private LocationManager locationManager;
     private LocationListener locationListener;
@@ -61,7 +60,7 @@ public class StandardLocationProvider implements ILocationProvider {
                         }
                     };
                     for(String provider : locationManager.getAllProviders()) {
-                        locationManager.requestLocationUpdates(provider, LocUtils.TIME_BETWEEN_UPDATES_IN_MILLIS, MIN_DISTANCE_FOR_UPDATES_IN_METERS, locationListener);
+                        locationManager.requestLocationUpdates(provider, LocUtils.TIME_BETWEEN_UPDATES_IN_MILLIS, LocUtils.MIN_DISTANCE_FOR_UPDATES_IN_METERS, locationListener);
                     }
                     Location location = getLastLocation();
                     doUpdateLocation(location, subscriber);

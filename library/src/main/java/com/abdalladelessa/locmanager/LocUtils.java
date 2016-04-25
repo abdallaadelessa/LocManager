@@ -25,6 +25,7 @@ import rx.Subscriber;
  */
 public class LocUtils {
     public static final long TIME_BETWEEN_UPDATES_IN_MILLIS = 1000 * 10;
+    public static final int MIN_DISTANCE_FOR_UPDATES_IN_METERS = 10;
     public static final long TIMEOUT_IN_MILLIS = 1000 * 20;
     public static final long DELAY_IN_MILLIS = 1000 * 2;
     //---->

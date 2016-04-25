@@ -9,7 +9,6 @@ import com.abdalladelessa.locmanager.providers.FuseLocationProvider;
 import com.abdalladelessa.locmanager.providers.ILocationProvider;
 import com.abdalladelessa.locmanager.providers.StandardLocationProvider;
 
-import java.lang.ref.WeakReference;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -95,7 +94,7 @@ public class LocManager {
         }).flatMap(new Func1<Boolean, Observable<Location>>() {
             @Override
             public Observable<Location> call(Boolean aBoolean) {
-                return currentLocationProvider.getLocation(new WeakReference<>(context));
+                return currentLocationProvider.getLocation(context);
             }
         }).compose(checkLocationSettings(new Runnable() {
             @Override
