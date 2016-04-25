@@ -2,6 +2,7 @@ package com.abdalladelessa.locmanager;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.location.Location;
 import android.os.Handler;
 
@@ -108,6 +109,12 @@ public class LocManager {
 
     public Observable<Location> getSingleLocation(final Context context) {
         return getLocationUpdates(context).first();
+    }
+
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if(currentLocationProvider != null) {
+            currentLocationProvider.onActivityResult(requestCode, resultCode, data);
+        }
     }
 
     // ---------------------> Location Settings Timer

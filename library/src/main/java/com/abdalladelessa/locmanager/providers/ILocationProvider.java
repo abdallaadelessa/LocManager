@@ -2,6 +2,7 @@ package com.abdalladelessa.locmanager.providers;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.location.Location;
 
 import rx.Observable;
@@ -13,6 +14,8 @@ public interface ILocationProvider {
     Observable<Location> getLocation(Context context);
 
     void askUserToEnableLocationSettingsIfNot(final Activity context);
+
+    void onActivityResult(int requestCode, int resultCode, Intent data);
 
     void disconnect();
 }

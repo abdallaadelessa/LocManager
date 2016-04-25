@@ -1,5 +1,6 @@
 package com.abdalladelessa.demo;
 
+import android.content.Intent;
 import android.location.Location;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
@@ -67,6 +68,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 tvLabel.setText("Error :" + error);
             }
         });
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        locManager.onActivityResult(requestCode, resultCode, data);
     }
 
     @Override

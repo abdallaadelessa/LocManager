@@ -26,6 +26,7 @@ public class StandardLocationProvider implements ILocationProvider {
     private Location lastLocation;
     private LocationManager locationManager;
     private LocationListener locationListener;
+    private AlertDialog settingsAlertDialog;
 
     // ------------------->
 
@@ -86,26 +87,37 @@ public class StandardLocationProvider implements ILocationProvider {
     }
 
     public void askUserToEnableLocationSettingsIfNot(final Activity context) {
-        AlertDialog.Builder alertDialog = new AlertDialog.Builder(context);
-        alertDialog.setTitle(LocUtils.TEXT_LOCATION_SETTINGS);
-        alertDialog.setMessage(LocUtils.TEXT_LOCATION_IS_NOT_ENABLED_MESSAGE);
-        alertDialog.setPositiveButton(LocUtils.TEXT_SETTINGS, new DialogInterface.OnClickListener() {
+        if(settingsAlertDialog != null) {
+            settingsAlertDialog.cancel();
+        }
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(context);
+        alertDialogBuilder.setTitle(LocUtils.TEXT_LOCATION_SETTINGS);
+        alertDialogBuilder.setMessage(LocUtils.TEXT_LOCATION_IS_NOT_ENABLED_MESSAGE);
+        alertDialogBuilder.setPositiveButton(LocUtils.TEXT_SETTINGS, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
                 Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
                 context.startActivity(intent);
                 dialog.cancel();
             }
         });
-        alertDialog.setNegativeButton(LocUtils.TEXT_CANCEL, new DialogInterface.OnClickListener() {
+        alertDialogBuilder.setNegativeButton(LocUtils.TEXT_CANCEL, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
                 dialog.cancel();
             }
         });
-        alertDialog.show();
+        settingsAlertDialog = alertDialogBuilder.show();
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+
     }
 
     public void disconnect() {
         try {
+            if(settingsAlertDialog != null) {
+                settingsAlertDialog.cancel();
+            }
             if(locationManager != null && locationListener != null) {
                 locationManager.removeUpdates(locationListener);
             }

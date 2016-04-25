@@ -2,6 +2,7 @@ package com.abdalladelessa.locmanager.providers;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.content.IntentSender;
 import android.location.Location;
 import android.os.Bundle;
@@ -30,11 +31,12 @@ import rx.functions.Action1;
  * Created by Abdullah.Essa on 4/24/2016.
  */
 public class FuseLocationProvider implements ILocationProvider {
-    public static final int REQUEST_CHECK_SETTINGS = 787;
+    public static final int REQUEST_CHECK_LOCATION_SETTINGS = 787;
     public static final long FASTEST_INTERVAL = 1000 * 5;
     private static final int PRIORITY = LocationRequest.PRIORITY_HIGH_ACCURACY;
     private LocationRequest locationRequest;
     private GoogleApiClient googleApiClient;
+    private boolean isDialogShown;
 
     // ------------------->
 
@@ -101,6 +103,7 @@ public class FuseLocationProvider implements ILocationProvider {
     }
 
     public void askUserToEnableLocationSettingsIfNot(final Activity context) {
+        if(isDialogShown) return;
         final LocationSettingsRequest settingsRequest = new LocationSettingsRequest.Builder().addLocationRequest(locationRequest).setAlwaysShow(true).build();
         LocationServices.SettingsApi.checkLocationSettings(googleApiClient, settingsRequest).setResultCallback(new ResultCallback<Result>() {
             @Override
@@ -111,7 +114,8 @@ public class FuseLocationProvider implements ILocationProvider {
                         case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
                             try {
                                 LocUtils.log("LocationSettingsStatusCodes RESOLUTION_REQUIRED");
-                                status.startResolutionForResult(context, REQUEST_CHECK_SETTINGS);
+                                status.startResolutionForResult(context, REQUEST_CHECK_LOCATION_SETTINGS);
+                                isDialogShown = true;
                             }
                             catch(IntentSender.SendIntentException e) {
                                 LocUtils.logError(e);
@@ -124,6 +128,13 @@ public class FuseLocationProvider implements ILocationProvider {
                 }
             }
         });
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if(requestCode == REQUEST_CHECK_LOCATION_SETTINGS) {
+            isDialogShown = false;
+        }
     }
 
     public void disconnect() {

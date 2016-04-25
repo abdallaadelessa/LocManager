@@ -2,9 +2,7 @@ package com.abdalladelessa.locmanager;
 
 import android.Manifest;
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.location.LocationManager;
-import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -76,7 +74,7 @@ public class LocUtils {
         catch(Exception e) {
             logError(e);
         }
-        if(!isNetworkEnabled || !isGPSEnabled) {
+        if(!isNetworkEnabled && !isGPSEnabled) {
             canContinue = false;
         }
         return canContinue;
