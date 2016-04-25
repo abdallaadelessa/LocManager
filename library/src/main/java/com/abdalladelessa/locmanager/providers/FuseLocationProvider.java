@@ -8,6 +8,8 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
+import com.abdalladelessa.locmanager.LocException;
+import com.abdalladelessa.locmanager.LocUtils;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.Result;
@@ -19,8 +21,6 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.location.LocationSettingsRequest;
 import com.google.android.gms.location.LocationSettingsStatusCodes;
 
-import com.abdalladelessa.locmanager.LocException;
-import com.abdalladelessa.locmanager.LocUtils;
 import rx.Observable;
 import rx.Subscriber;
 import rx.functions.Action0;
@@ -78,12 +78,10 @@ public class FuseLocationProvider implements ILocationProvider {
                         @Override
                         public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
                             LocUtils.log(connectionResult.getErrorMessage());
+                            subscriber.onError(new LocException(LocUtils.ERROR_CODE_GOOGLE_API_CONNECTION_FAILED_ERROR));
                         }
                     }).build();
                     googleApiClient.connect();
-                    if(context instanceof Activity) {
-                        checkSettings((Activity) context, subscriber);
-                    }
                 }
                 catch(Throwable e) {
                     subscriber.onError(e);
@@ -102,20 +100,7 @@ public class FuseLocationProvider implements ILocationProvider {
         });
     }
 
-    private void disconnect() {
-        try {
-            if(googleApiClient != null) {
-                googleApiClient.disconnect();
-            }
-        }
-        catch(Throwable e) {
-            LocUtils.logError(e);
-        }
-    }
-
-    // ------------------->
-
-    private void checkSettings(final Activity context, final Subscriber<? super Location> subscriber) {
+    public void askUserToEnableLocationSettingsIfNot(final Activity context) {
         final LocationSettingsRequest settingsRequest = new LocationSettingsRequest.Builder().addLocationRequest(locationRequest).setAlwaysShow(true).build();
         LocationServices.SettingsApi.checkLocationSettings(googleApiClient, settingsRequest).setResultCallback(new ResultCallback<Result>() {
             @Override
@@ -132,18 +117,25 @@ public class FuseLocationProvider implements ILocationProvider {
                                 LocUtils.logError(e);
                             }
                             break;
-                        case LocationSettingsStatusCodes.SETTINGS_CHANGE_UNAVAILABLE:
-                            subscriber.onError(new LocException(LocUtils.CODE_SETTINGS_CHANGE_UNAVAILABLE));
-                            break;
-                        case LocationSettingsStatusCodes.NETWORK_ERROR:
-                            subscriber.onError(new LocException(LocUtils.CODE_NETWORK_ERROR));
-                            break;
                     }
                 }
                 catch(Throwable e) {
-                    subscriber.onError(e);
+                    LocUtils.logError(e);
                 }
             }
         });
     }
+
+    public void disconnect() {
+        try {
+            if(googleApiClient != null) {
+                googleApiClient.disconnect();
+            }
+        }
+        catch(Throwable e) {
+            LocUtils.logError(e);
+        }
+    }
+
+    // ------------------->
 }

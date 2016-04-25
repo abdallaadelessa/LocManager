@@ -3,6 +3,7 @@ package com.abdalladelessa.locmanager;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.location.LocationManager;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 
@@ -24,16 +25,14 @@ import rx.Subscriber;
  */
 public class LocUtils {
     public static final long TIME_BETWEEN_UPDATES_IN_MILLIS = 1000 * 10;
-    public static final long TIMEOUT_IN_MILLIS = TIME_BETWEEN_UPDATES_IN_MILLIS * 6;
+    public static final long TIMEOUT_IN_MILLIS = 1000 * 20;
+    public static final long DELAY_IN_MILLIS = 1000 * 2;
     //---->
-    public static final int CODE_CONTEXT_IS_NULL = 0;
-    public static final int CODE_PROVIDER_IS_NULL = 1;
-    public static final int CODE_GOOGLE_PLAY_SERVICE_NOT_FOUND = 2;
-    public static final int CODE_LOCATION_PERMISSION_DENIED = 3;
-    public static final int CODE_PROVIDE_DISABLED = 4;
-    public static final int CODE_TIME_OUT = 5;
-    public static final int CODE_SETTINGS_CHANGE_UNAVAILABLE = 6;
-    public static final int CODE_NETWORK_ERROR = 7;
+    public static final int ERROR_CODE_CONTEXT_IS_NULL = 0;
+    public static final int ERROR_CODE_PROVIDER_IS_NULL = 1;
+    public static final int ERROR_CODE_GOOGLE_PLAY_SERVICE_NOT_FOUND = 2;
+    public static final int ERROR_CODE_LOCATION_PERMISSION_DENIED = 3;
+    public static final int ERROR_CODE_GOOGLE_API_CONNECTION_FAILED_ERROR = 8;
     //---->
     public static String TEXT_LOCATION_SETTINGS;
     public static String TEXT_LOCATION_IS_NOT_ENABLED_MESSAGE;
@@ -59,8 +58,27 @@ public class LocUtils {
 
     // -------------------->
 
-    public static boolean hasLocationPermissions(Context context) {
-        return ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+    public static boolean checkLocationSettingsIsEnabled(final Context context) {
+        boolean canContinue = true;
+        boolean isGPSEnabled = false;
+        boolean isNetworkEnabled = false;
+        LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+        try {
+            isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+        }
+        catch(Exception e) {
+            logError(e);
+        }
+        try {
+            isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+        }
+        catch(Exception e) {
+            logError(e);
+        }
+        if(!isNetworkEnabled || !isGPSEnabled) {
+            canContinue = false;
+        }
+        return canContinue;
     }
 
     public static boolean checkHasPlayServices(Context context) {
@@ -69,7 +87,7 @@ public class LocUtils {
         return result == ConnectionResult.SUCCESS;
     }
 
-    public static Observable<Boolean> checkLocationPermissions() {
+    public static Observable<Boolean> checkHasLocationPermissions() {
         return Observable.create(new Observable.OnSubscribe<Boolean>() {
             @Override
             public void call(final Subscriber<? super Boolean> subscriber) {
@@ -82,7 +100,7 @@ public class LocUtils {
                             subscriber.onCompleted();
                         }
                         else {
-                            subscriber.onError(new LocException(CODE_LOCATION_PERMISSION_DENIED));
+                            subscriber.onError(new LocException(ERROR_CODE_LOCATION_PERMISSION_DENIED));
                         }
                     }
 

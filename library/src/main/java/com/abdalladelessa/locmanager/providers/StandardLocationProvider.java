@@ -1,5 +1,6 @@
 package com.abdalladelessa.locmanager.providers;
 
+import android.app.Activity;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -11,6 +12,9 @@ import android.provider.Settings;
 import android.support.v7.app.AlertDialog;
 
 import com.abdalladelessa.locmanager.LocUtils;
+
+import java.util.Timer;
+import java.util.TimerTask;
 
 import rx.Observable;
 import rx.Subscriber;
@@ -59,7 +63,6 @@ public class StandardLocationProvider implements ILocationProvider {
                             LocUtils.log("onProviderDisabled : " + provider);
                         }
                     };
-                    checkSettings(context);
                     for(String provider : locationManager.getAllProviders()) {
                         locationManager.requestLocationUpdates(provider, LocUtils.TIME_BETWEEN_UPDATES_IN_MILLIS, MIN_DISTANCE_FOR_UPDATES_IN_METERS, locationListener);
                     }
@@ -86,46 +89,7 @@ public class StandardLocationProvider implements ILocationProvider {
         });
     }
 
-    private void disconnect() {
-        try {
-            if(locationManager != null && locationListener != null) {
-                locationManager.removeUpdates(locationListener);
-            }
-        }
-        catch(SecurityException e) {
-            LocUtils.logError(e);
-        }
-        catch(Throwable e) {
-            LocUtils.logError(e);
-        }
-    }
-
-    // -------------------> Settings
-
-    private boolean checkSettings(final Context context) {
-        boolean canContinue = true;
-        boolean isGPSEnabled = false;
-        boolean isNetworkEnabled = false;
-        try {
-            isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-        }
-        catch(Exception e) {
-            LocUtils.logError(e);
-        }
-        try {
-            isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
-        }
-        catch(Exception e) {
-            LocUtils.logError(e);
-        }
-        if(!isNetworkEnabled || !isGPSEnabled) {
-            canContinue = false;
-            showLocationNotEnabledDialog(context);
-        }
-        return canContinue;
-    }
-
-    private void showLocationNotEnabledDialog(final Context context) {
+    public void askUserToEnableLocationSettingsIfNot(final Activity context) {
         AlertDialog.Builder alertDialog = new AlertDialog.Builder(context);
         alertDialog.setTitle(LocUtils.TEXT_LOCATION_SETTINGS);
         alertDialog.setMessage(LocUtils.TEXT_LOCATION_IS_NOT_ENABLED_MESSAGE);
@@ -142,6 +106,20 @@ public class StandardLocationProvider implements ILocationProvider {
             }
         });
         alertDialog.show();
+    }
+
+    public void disconnect() {
+        try {
+            if(locationManager != null && locationListener != null) {
+                locationManager.removeUpdates(locationListener);
+            }
+        }
+        catch(SecurityException e) {
+            LocUtils.logError(e);
+        }
+        catch(Throwable e) {
+            LocUtils.logError(e);
+        }
     }
 
     // -------------------> Compare Locations
