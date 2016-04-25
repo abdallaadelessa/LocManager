@@ -3,6 +3,7 @@ package com.abdalladelessa.rxlocmanager;
 import android.Manifest;
 import android.content.Context;
 import android.location.LocationManager;
+import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.google.android.gms.common.ConnectionResult;
@@ -37,6 +38,9 @@ public class RxLocUtils {
     public static String TEXT_LOCATION_IS_NOT_ENABLED_MESSAGE;
     public static String TEXT_SETTINGS;
     public static String TEXT_CANCEL;
+    public static String ERROR_TEXT_COULDNT_RECEIVE_LOCATION;
+    public static String ERROR_TEXT_COULDNT_FIND_GOOGLE_PLAY_SERVICE;
+    public static String ERROR_TEXT_PERMISSION_DENIED;
     //---->
 
     public static void initResources(Context context) {
@@ -45,6 +49,9 @@ public class RxLocUtils {
         TEXT_LOCATION_IS_NOT_ENABLED_MESSAGE = "Location is not enabled. Do you want to enable it in settings?";
         TEXT_SETTINGS = "Settings";
         TEXT_CANCEL = "Cancel";
+        ERROR_TEXT_COULDNT_RECEIVE_LOCATION = "Cpuldnt retreive location";
+        ERROR_TEXT_COULDNT_FIND_GOOGLE_PLAY_SERVICE = "Couldn't find Google Play Service";
+        ERROR_TEXT_PERMISSION_DENIED = "Permission Denied";
     }
 
     public static void log(String message) {
@@ -110,5 +117,27 @@ public class RxLocUtils {
                 }, Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION);
             }
         });
+    }
+
+    @NonNull
+    public static String getRxLocErrorMessage(Throwable e) {
+        String error = ERROR_TEXT_COULDNT_RECEIVE_LOCATION;
+        if(e instanceof RxLocException) {
+            switch(((RxLocException) e).getErrorCode()) {
+                case ERROR_CODE_CONTEXT_IS_NULL:
+                    RxLocUtils.log("getRxLocErrorMessage Context is null");
+                    break;
+                case ERROR_CODE_PROVIDER_IS_NULL:
+                    RxLocUtils.log("getRxLocErrorMessage Current Provider is null");
+                    break;
+                case ERROR_CODE_GOOGLE_PLAY_SERVICE_NOT_FOUND:
+                    error = ERROR_TEXT_COULDNT_FIND_GOOGLE_PLAY_SERVICE;
+                    break;
+                case ERROR_CODE_LOCATION_PERMISSION_DENIED:
+                    error = ERROR_TEXT_PERMISSION_DENIED;
+                    break;
+            }
+        }
+        return error;
     }
 }

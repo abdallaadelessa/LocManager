@@ -9,6 +9,7 @@ import android.os.Handler;
 import com.abdalladelessa.rxlocmanager.providers.FuseLocationProvider;
 import com.abdalladelessa.rxlocmanager.providers.ILocationProvider;
 import com.abdalladelessa.rxlocmanager.providers.StandardLocationProvider;
+import com.karumi.dexter.Dexter;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -26,6 +27,11 @@ public class RxLocManager {
     private Handler mainHandler = new Handler();
     private ILocationProvider currentLocationProvider;
     private Timer settingsCheckerTimer;
+
+    public static void init(Context context){
+        Dexter.initialize(context);
+        RxLocUtils.initResources(context);
+    }
 
     public static RxLocManager getFuseGoogleApiBasedLocationManager() {
         return new RxLocManager(new FuseLocationProvider());
@@ -69,7 +75,6 @@ public class RxLocManager {
     // --------------------->
 
     public Observable<Location> getLocationUpdates(final Context context) {
-        RxLocUtils.initResources(context);
         return Observable.create(new Observable.OnSubscribe<Boolean>() {
             @Override
             public void call(Subscriber<? super Boolean> subscriber) {

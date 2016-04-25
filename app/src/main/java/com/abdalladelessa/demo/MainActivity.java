@@ -9,7 +9,6 @@ import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.widget.TextView;
 
-import com.abdalladelessa.rxlocmanager.RxLocException;
 import com.abdalladelessa.rxlocmanager.RxLocManager;
 import com.abdalladelessa.rxlocmanager.RxLocUtils;
 
@@ -48,23 +47,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }, new Action1<Throwable>() {
             @Override
             public void call(Throwable e) {
-                String error = "Unknown error";
-                if(e instanceof RxLocException) {
-                    switch(((RxLocException) e).getErrorCode()) {
-                        case RxLocUtils.ERROR_CODE_CONTEXT_IS_NULL:
-                            error = "Context is null";
-                            break;
-                        case RxLocUtils.ERROR_CODE_PROVIDER_IS_NULL:
-                            error = "Provider is null";
-                            break;
-                        case RxLocUtils.ERROR_CODE_GOOGLE_PLAY_SERVICE_NOT_FOUND:
-                            error = "Couldn't find Google Play Service";
-                            break;
-                        case RxLocUtils.ERROR_CODE_LOCATION_PERMISSION_DENIED:
-                            error = "Permission Denied";
-                            break;
-                    }
-                }
+                String error = RxLocUtils.getRxLocErrorMessage(e);
                 tvLabel.setText("Error :" + error);
             }
         });

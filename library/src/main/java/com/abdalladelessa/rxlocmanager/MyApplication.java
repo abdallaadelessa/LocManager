@@ -11,6 +11,6 @@ public class MyApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        Dexter.initialize(this);
+        RxLocManager.init(this);
     }
 }
