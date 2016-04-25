@@ -96,7 +96,7 @@ public class LocManager {
             public Observable<Location> call(Boolean aBoolean) {
                 return currentLocationProvider.getLocation(context);
             }
-        }).compose(checkLocationSettings(new Runnable() {
+        }).compose(attachCheckLocationSettingsTimer(new Runnable() {
             @Override
             public void run() {
                 if(context != null && currentLocationProvider != null && context instanceof Activity && !LocUtils.checkLocationSettingsIsEnabled(context)) {
@@ -112,7 +112,7 @@ public class LocManager {
 
     // ---------------------> Location Settings Timer
 
-    public Observable.Transformer<Location, Location> checkLocationSettings(final Runnable onSettingsNotEnabledAction) {
+    public Observable.Transformer<Location, Location> attachCheckLocationSettingsTimer(final Runnable onSettingsNotEnabledAction) {
         return new Observable.Transformer<Location, Location>() {
             @Override
             public Observable<Location> call(Observable<Location> observable) {
