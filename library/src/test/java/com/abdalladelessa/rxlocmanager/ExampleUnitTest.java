@@ -1,4 +1,4 @@
-package com.abdalladelessa.locmanager;
+package com.abdalladelessa.rxlocmanager;
 
 import org.junit.Test;
 

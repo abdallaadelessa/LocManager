@@ -1,4 +1,4 @@
-package com.abdalladelessa.locmanager;
+package com.abdalladelessa.rxlocmanager;
 
 import android.Manifest;
 import android.content.Context;

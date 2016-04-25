@@ -1,4 +1,4 @@
-package com.abdalladelessa.locmanager;
+package com.abdalladelessa.rxlocmanager;
 
 /**
  * Created by Abdullah.Essa on 4/24/2016.

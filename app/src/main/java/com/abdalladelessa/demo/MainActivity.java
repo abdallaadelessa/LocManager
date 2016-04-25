@@ -9,9 +9,9 @@ import android.support.v7.widget.Toolbar;
 import android.view.View;
 import android.widget.TextView;
 
-import com.abdalladelessa.locmanager.RxLocException;
-import com.abdalladelessa.locmanager.RxLocManager;
-import com.abdalladelessa.locmanager.RxLocUtils;
+import com.abdalladelessa.rxlocmanager.RxLocException;
+import com.abdalladelessa.rxlocmanager.RxLocManager;
+import com.abdalladelessa.rxlocmanager.RxLocUtils;
 
 import rx.Subscription;
 import rx.functions.Action1;

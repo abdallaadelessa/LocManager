@@ -1,4 +1,4 @@
-package com.abdalladelessa.locmanager;
+package com.abdalladelessa.rxlocmanager;
 
 import android.app.Activity;
 import android.content.Context;
@@ -6,9 +6,9 @@ import android.content.Intent;
 import android.location.Location;
 import android.os.Handler;
 
-import com.abdalladelessa.locmanager.providers.FuseLocationProvider;
-import com.abdalladelessa.locmanager.providers.ILocationProvider;
-import com.abdalladelessa.locmanager.providers.StandardLocationProvider;
+import com.abdalladelessa.rxlocmanager.providers.FuseLocationProvider;
+import com.abdalladelessa.rxlocmanager.providers.ILocationProvider;
+import com.abdalladelessa.rxlocmanager.providers.StandardLocationProvider;
 
 import java.util.Timer;
 import java.util.TimerTask;
