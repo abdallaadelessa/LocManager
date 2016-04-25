@@ -22,32 +22,32 @@ import rx.functions.Func1;
 /**
  * Created by Abdullah.Essa on 4/24/2016.
  */
-public class LocManager {
+public class RxLocManager {
     private Handler mainHandler = new Handler();
     private ILocationProvider currentLocationProvider;
     private Timer settingsCheckerTimer;
 
-    public static LocManager getFuseGoogleApiBasedLocationManager() {
-        return new LocManager(new FuseLocationProvider());
+    public static RxLocManager getFuseGoogleApiBasedLocationManager() {
+        return new RxLocManager(new FuseLocationProvider());
     }
 
-    public static LocManager getStandardBasedLocationManager() {
-        return new LocManager(new StandardLocationProvider());
+    public static RxLocManager getStandardBasedLocationManager() {
+        return new RxLocManager(new StandardLocationProvider());
 
     }
 
-    public static LocManager getBestManager(Context context) {
-        return new LocManager(context);
+    public static RxLocManager getBestManager(Context context) {
+        return new RxLocManager(context);
 
     }
 
     // --------------------->
 
-    private LocManager(Context context) {
+    private RxLocManager(Context context) {
         this(getBestLocationProvider(context));
     }
 
-    private LocManager(ILocationProvider currentLocationProvider) {
+    private RxLocManager(ILocationProvider currentLocationProvider) {
         this.currentLocationProvider = currentLocationProvider;
     }
 
@@ -56,7 +56,7 @@ public class LocManager {
     static ILocationProvider getBestLocationProvider(Context context) {
         ILocationProvider iLocationProvider = null;
         if(context != null) {
-            if(LocUtils.checkHasPlayServices(context)) {
+            if(RxLocUtils.checkHasPlayServices(context)) {
                 iLocationProvider = new FuseLocationProvider();
             }
             else {
@@ -69,18 +69,18 @@ public class LocManager {
     // --------------------->
 
     public Observable<Location> getLocationUpdates(final Context context) {
-        LocUtils.initResources(context);
+        RxLocUtils.initResources(context);
         return Observable.create(new Observable.OnSubscribe<Boolean>() {
             @Override
             public void call(Subscriber<? super Boolean> subscriber) {
                 if(context == null) {
-                    subscriber.onError(new LocException(LocUtils.ERROR_CODE_CONTEXT_IS_NULL));
+                    subscriber.onError(new RxLocException(RxLocUtils.ERROR_CODE_CONTEXT_IS_NULL));
                 }
                 else if(currentLocationProvider == null) {
-                    subscriber.onError(new LocException(LocUtils.ERROR_CODE_PROVIDER_IS_NULL));
+                    subscriber.onError(new RxLocException(RxLocUtils.ERROR_CODE_PROVIDER_IS_NULL));
                 }
-                else if(!LocUtils.checkHasPlayServices(context) && currentLocationProvider instanceof FuseLocationProvider) {
-                    subscriber.onError(new LocException(LocUtils.ERROR_CODE_GOOGLE_PLAY_SERVICE_NOT_FOUND));
+                else if(!RxLocUtils.checkHasPlayServices(context) && currentLocationProvider instanceof FuseLocationProvider) {
+                    subscriber.onError(new RxLocException(RxLocUtils.ERROR_CODE_GOOGLE_PLAY_SERVICE_NOT_FOUND));
                 }
                 else {
                     subscriber.onNext(true);
@@ -90,7 +90,7 @@ public class LocManager {
         }).flatMap(new Func1<Boolean, Observable<Boolean>>() {
             @Override
             public Observable<Boolean> call(Boolean aBoolean) {
-                return LocUtils.checkHasLocationPermissions();
+                return RxLocUtils.checkHasLocationPermissions();
             }
         }).flatMap(new Func1<Boolean, Observable<Location>>() {
             @Override
@@ -100,7 +100,7 @@ public class LocManager {
         }).compose(attachCheckLocationSettingsTimer(new Runnable() {
             @Override
             public void run() {
-                if(context != null && currentLocationProvider != null && context instanceof Activity && !LocUtils.checkLocationSettingsIsEnabled(context)) {
+                if(context != null && currentLocationProvider != null && context instanceof Activity && !RxLocUtils.checkLocationSettingsIsEnabled(context)) {
                     currentLocationProvider.askUserToEnableLocationSettingsIfNot((Activity) context);
                 }
             }
@@ -164,13 +164,13 @@ public class LocManager {
                                 }
                             }
                             catch(Exception e) {
-                                LocUtils.logError(e);
+                                RxLocUtils.logError(e);
                             }
                         }
                     });
                 }
             }
-        }, LocUtils.DELAY_IN_MILLIS, LocUtils.TIMEOUT_IN_MILLIS);
+        }, RxLocUtils.DELAY_IN_MILLIS, RxLocUtils.TIMEOUT_IN_MILLIS);
     }
 
     private void cancelLocationSettingsTimer() {

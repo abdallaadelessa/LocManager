@@ -11,7 +11,7 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.support.v7.app.AlertDialog;
 
-import com.abdalladelessa.locmanager.LocUtils;
+import com.abdalladelessa.locmanager.RxLocUtils;
 
 import rx.Observable;
 import rx.Subscriber;
@@ -50,18 +50,18 @@ public class StandardLocationProvider implements ILocationProvider {
 
                         @Override
                         public void onProviderEnabled(String provider) {
-                            LocUtils.log("onProviderEnabled : " + provider);
+                            RxLocUtils.log("onProviderEnabled : " + provider);
                             Location location = getLastLocation();
                             doUpdateLocation(location, subscriber);
                         }
 
                         @Override
                         public void onProviderDisabled(String provider) {
-                            LocUtils.log("onProviderDisabled : " + provider);
+                            RxLocUtils.log("onProviderDisabled : " + provider);
                         }
                     };
                     for(String provider : locationManager.getAllProviders()) {
-                        locationManager.requestLocationUpdates(provider, LocUtils.TIME_BETWEEN_UPDATES_IN_MILLIS, LocUtils.MIN_DISTANCE_FOR_UPDATES_IN_METERS, locationListener);
+                        locationManager.requestLocationUpdates(provider, RxLocUtils.TIME_BETWEEN_UPDATES_IN_MILLIS, RxLocUtils.MIN_DISTANCE_FOR_UPDATES_IN_METERS, locationListener);
                     }
                     Location location = getLastLocation();
                     doUpdateLocation(location, subscriber);
@@ -91,16 +91,16 @@ public class StandardLocationProvider implements ILocationProvider {
             settingsAlertDialog.cancel();
         }
         AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(context);
-        alertDialogBuilder.setTitle(LocUtils.TEXT_LOCATION_SETTINGS);
-        alertDialogBuilder.setMessage(LocUtils.TEXT_LOCATION_IS_NOT_ENABLED_MESSAGE);
-        alertDialogBuilder.setPositiveButton(LocUtils.TEXT_SETTINGS, new DialogInterface.OnClickListener() {
+        alertDialogBuilder.setTitle(RxLocUtils.TEXT_LOCATION_SETTINGS);
+        alertDialogBuilder.setMessage(RxLocUtils.TEXT_LOCATION_IS_NOT_ENABLED_MESSAGE);
+        alertDialogBuilder.setPositiveButton(RxLocUtils.TEXT_SETTINGS, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
                 Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
                 context.startActivity(intent);
                 dialog.cancel();
             }
         });
-        alertDialogBuilder.setNegativeButton(LocUtils.TEXT_CANCEL, new DialogInterface.OnClickListener() {
+        alertDialogBuilder.setNegativeButton(RxLocUtils.TEXT_CANCEL, new DialogInterface.OnClickListener() {
             public void onClick(DialogInterface dialog, int which) {
                 dialog.cancel();
             }
@@ -123,27 +123,27 @@ public class StandardLocationProvider implements ILocationProvider {
             }
         }
         catch(SecurityException e) {
-            LocUtils.logError(e);
+            RxLocUtils.logError(e);
         }
         catch(Throwable e) {
-            LocUtils.logError(e);
+            RxLocUtils.logError(e);
         }
     }
 
     // -------------------> Compare Locations
 
     private void doUpdateLocation(Location location, Subscriber<? super Location> subscriber) {
-        LocUtils.log("New Location : " + location);
+        RxLocUtils.log("New Location : " + location);
         boolean isBetterLocation = false;
         try {
             isBetterLocation = isBetterLocation(location, lastLocation);
         }
         catch(Throwable e) {
-            LocUtils.logError(e);
+            RxLocUtils.logError(e);
         }
         if(isBetterLocation) {
             lastLocation = location;
-            LocUtils.log("doUpdateLocation : " + lastLocation.getProvider());
+            RxLocUtils.log("doUpdateLocation : " + lastLocation.getProvider());
             subscriber.onNext(lastLocation);
         }
 
@@ -215,20 +215,20 @@ public class StandardLocationProvider implements ILocationProvider {
         }
 
         if(gpsLocation == null) {
-            LocUtils.log("No GPS Location available.");
+            RxLocUtils.log("No GPS Location available.");
             return networkLocation;
         }
         if(networkLocation == null) {
-            LocUtils.log("No Network Location available");
+            RxLocUtils.log("No Network Location available");
             return gpsLocation;
         }
         // both are old return the newer of those two
         if(gpsLocation.getTime() > networkLocation.getTime()) {
-            LocUtils.log("Both are old, returning gps(newer)");
+            RxLocUtils.log("Both are old, returning gps(newer)");
             return gpsLocation;
         }
         else {
-            LocUtils.log("Both are old, returning network(newer)");
+            RxLocUtils.log("Both are old, returning network(newer)");
             return networkLocation;
         }
     }
@@ -241,7 +241,7 @@ public class StandardLocationProvider implements ILocationProvider {
             }
         }
         catch(IllegalArgumentException | SecurityException e) {
-            LocUtils.logError(e);
+            RxLocUtils.logError(e);
         }
         return location;
     }

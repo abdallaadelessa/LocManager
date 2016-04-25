@@ -9,8 +9,8 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 
-import com.abdalladelessa.locmanager.LocException;
-import com.abdalladelessa.locmanager.LocUtils;
+import com.abdalladelessa.locmanager.RxLocException;
+import com.abdalladelessa.locmanager.RxLocUtils;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.Result;
@@ -46,7 +46,7 @@ public class FuseLocationProvider implements ILocationProvider {
             public void call(final Subscriber<? super Location> subscriber) {
                 try {
                     locationRequest = new LocationRequest();
-                    locationRequest.setInterval(LocUtils.TIME_BETWEEN_UPDATES_IN_MILLIS);
+                    locationRequest.setInterval(RxLocUtils.TIME_BETWEEN_UPDATES_IN_MILLIS);
                     locationRequest.setFastestInterval(FASTEST_INTERVAL);
                     locationRequest.setPriority(PRIORITY);
                     googleApiClient = new GoogleApiClient.Builder(context).addApi(LocationServices.API).addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
@@ -79,8 +79,8 @@ public class FuseLocationProvider implements ILocationProvider {
                     }).addOnConnectionFailedListener(new GoogleApiClient.OnConnectionFailedListener() {
                         @Override
                         public void onConnectionFailed(@NonNull ConnectionResult connectionResult) {
-                            LocUtils.log(connectionResult.getErrorMessage());
-                            subscriber.onError(new LocException(LocUtils.ERROR_CODE_GOOGLE_API_CONNECTION_FAILED_ERROR));
+                            RxLocUtils.log(connectionResult.getErrorMessage());
+                            subscriber.onError(new RxLocException(RxLocUtils.ERROR_CODE_GOOGLE_API_CONNECTION_FAILED_ERROR));
                         }
                     }).build();
                     googleApiClient.connect();
@@ -113,18 +113,18 @@ public class FuseLocationProvider implements ILocationProvider {
                     switch(status.getStatusCode()) {
                         case LocationSettingsStatusCodes.RESOLUTION_REQUIRED:
                             try {
-                                LocUtils.log("LocationSettingsStatusCodes RESOLUTION_REQUIRED");
+                                RxLocUtils.log("LocationSettingsStatusCodes RESOLUTION_REQUIRED");
                                 status.startResolutionForResult(context, REQUEST_CHECK_LOCATION_SETTINGS);
                                 isDialogShown = true;
                             }
                             catch(IntentSender.SendIntentException e) {
-                                LocUtils.logError(e);
+                                RxLocUtils.logError(e);
                             }
                             break;
                     }
                 }
                 catch(Throwable e) {
-                    LocUtils.logError(e);
+                    RxLocUtils.logError(e);
                 }
             }
         });
@@ -144,7 +144,7 @@ public class FuseLocationProvider implements ILocationProvider {
             }
         }
         catch(Throwable e) {
-            LocUtils.logError(e);
+            RxLocUtils.logError(e);
         }
     }
 

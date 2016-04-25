@@ -21,7 +21,7 @@ import rx.Subscriber;
 /**
  * Created by Abdullah.Essa on 4/24/2016.
  */
-public class LocUtils {
+public class RxLocUtils {
     public static final long TIME_BETWEEN_UPDATES_IN_MILLIS = 1000 * 10;
     public static final int MIN_DISTANCE_FOR_UPDATES_IN_METERS = 10;
     public static final long TIMEOUT_IN_MILLIS = 1000 * 20;
@@ -99,7 +99,7 @@ public class LocUtils {
                             subscriber.onCompleted();
                         }
                         else {
-                            subscriber.onError(new LocException(ERROR_CODE_LOCATION_PERMISSION_DENIED));
+                            subscriber.onError(new RxLocException(ERROR_CODE_LOCATION_PERMISSION_DENIED));
                         }
                     }
 
