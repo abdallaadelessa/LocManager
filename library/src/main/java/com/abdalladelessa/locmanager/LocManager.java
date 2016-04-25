@@ -3,11 +3,12 @@ package com.abdalladelessa.locmanager;
 import android.content.Context;
 import android.location.Location;
 
-import java.util.concurrent.TimeUnit;
-
 import com.abdalladelessa.locmanager.providers.FuseLocationProvider;
 import com.abdalladelessa.locmanager.providers.ILocationProvider;
 import com.abdalladelessa.locmanager.providers.StandardLocationProvider;
+
+import java.util.concurrent.TimeUnit;
+
 import rx.Observable;
 import rx.Subscriber;
 import rx.android.schedulers.AndroidSchedulers;
@@ -17,7 +18,7 @@ import rx.functions.Func1;
  * Created by Abdullah.Essa on 4/24/2016.
  */
 public class LocManager {
-    private ILocationProvider defaultLocationProvider;
+    private ILocationProvider currentLocationProvider;
 
     public static LocManager getFuseGoogleApiBasedLocationManager() {
         return new LocManager(new FuseLocationProvider());
@@ -39,8 +40,8 @@ public class LocManager {
         this(getBestLocationProvider(context));
     }
 
-    private LocManager(ILocationProvider defaultLocationProvider) {
-        this.defaultLocationProvider = defaultLocationProvider;
+    private LocManager(ILocationProvider currentLocationProvider) {
+        this.currentLocationProvider = currentLocationProvider;
     }
 
     // --------------------->
@@ -60,19 +61,19 @@ public class LocManager {
 
     // --------------------->
 
-    public Observable<Location> getLocation(final Context context) {
+    public Observable<Location> getLocationUpdates(final Context context) {
         LocUtils.initResources(context);
-        final Observable<Location> timeoutObservable = Observable.error(new LocException(LocUtils.CODE_TIME_OUT));
+
         return Observable.create(new Observable.OnSubscribe<Boolean>() {
             @Override
             public void call(Subscriber<? super Boolean> subscriber) {
                 if(context == null) {
                     subscriber.onError(new LocException(LocUtils.CODE_CONTEXT_IS_NULL));
                 }
-                else if(defaultLocationProvider == null) {
-                    subscriber.onError(new LocException(LocUtils.CODE_DEFAULT_PROVIDER_IS_NULL));
+                else if(currentLocationProvider == null) {
+                    subscriber.onError(new LocException(LocUtils.CODE_PROVIDER_IS_NULL));
                 }
-                else if(!LocUtils.checkHasPlayServices(context) && defaultLocationProvider instanceof FuseLocationProvider) {
+                else if(!LocUtils.checkHasPlayServices(context) && currentLocationProvider instanceof FuseLocationProvider) {
                     subscriber.onError(new LocException(LocUtils.CODE_GOOGLE_PLAY_SERVICE_NOT_FOUND));
                 }
                 else {
@@ -88,8 +89,17 @@ public class LocManager {
         }).flatMap(new Func1<Boolean, Observable<Location>>() {
             @Override
             public Observable<Location> call(Boolean aBoolean) {
-                return defaultLocationProvider.getLocation(context);
+                return currentLocationProvider.getLocation(context);
             }
-        }).timeout(LocUtils.TIME_BETWEEN_UPDATES_IN_MILLIS, TimeUnit.MILLISECONDS, timeoutObservable, AndroidSchedulers.mainThread());
+        });
+    }
+
+    public Observable<Location> getSingleLocation(final Context context) {
+        return getLocationUpdates(context).first();
+    }
+
+    public Observable<Location> getSingleLocationWithTimeOut(final Context context) {
+        final Observable<Location> timeoutObservable = Observable.error(new LocException(LocUtils.CODE_TIME_OUT));
+        return getSingleLocation(context).timeout(LocUtils.TIMEOUT_IN_MILLIS, TimeUnit.MILLISECONDS, timeoutObservable, AndroidSchedulers.mainThread());
     }
 }

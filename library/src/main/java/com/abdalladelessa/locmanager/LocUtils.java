@@ -23,10 +23,11 @@ import rx.Subscriber;
  * Created by Abdullah.Essa on 4/24/2016.
  */
 public class LocUtils {
-    public static final long TIME_BETWEEN_UPDATES_IN_MILLIS = 1000 * 60;
+    public static final long TIME_BETWEEN_UPDATES_IN_MILLIS = 1000 * 10;
+    public static final long TIMEOUT_IN_MILLIS = TIME_BETWEEN_UPDATES_IN_MILLIS * 6;
     //---->
     public static final int CODE_CONTEXT_IS_NULL = 0;
-    public static final int CODE_DEFAULT_PROVIDER_IS_NULL = 1;
+    public static final int CODE_PROVIDER_IS_NULL = 1;
     public static final int CODE_GOOGLE_PLAY_SERVICE_NOT_FOUND = 2;
     public static final int CODE_LOCATION_PERMISSION_DENIED = 3;
     public static final int CODE_PROVIDE_DISABLED = 4;

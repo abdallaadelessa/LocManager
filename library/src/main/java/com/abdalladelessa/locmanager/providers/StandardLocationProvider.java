@@ -3,7 +3,6 @@ package com.abdalladelessa.locmanager.providers;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.location.Criteria;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -11,8 +10,8 @@ import android.os.Bundle;
 import android.provider.Settings;
 import android.support.v7.app.AlertDialog;
 
-import com.abdalladelessa.locmanager.LocException;
 import com.abdalladelessa.locmanager.LocUtils;
+
 import rx.Observable;
 import rx.Subscriber;
 import rx.functions.Action0;
@@ -22,13 +21,11 @@ import rx.functions.Action1;
  * Created by Abdullah.Essa on 4/24/2016.
  */
 public class StandardLocationProvider implements ILocationProvider {
+    private static final int TWO_MINUTES = 1000 * 60 * 2;
     public static final int MIN_DISTANCE_FOR_UPDATES_IN_METERS = 10;
-    private static final int ACCURACY = Criteria.ACCURACY_FINE;
-    private static final int POWER = Criteria.POWER_LOW;
+    private Location lastLocation;
     private LocationManager locationManager;
     private LocationListener locationListener;
-    private Criteria criteria;
-    private String currentProvider;
 
     // ------------------->
 
@@ -38,45 +35,36 @@ public class StandardLocationProvider implements ILocationProvider {
             @Override
             public void call(final Subscriber<? super Location> subscriber) {
                 try {
+                    lastLocation = null;
                     locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
-                    if(checkProvidersIsEnabled(context)) {
-                        criteria = new Criteria();
-                        criteria.setAccuracy(ACCURACY);
-                        criteria.setPowerRequirement(POWER);
-                        criteria.setAltitudeRequired(false);
-                        criteria.setBearingRequired(false);
-                        currentProvider = locationManager.getBestProvider(criteria, true);
-                        LocUtils.log("CurrentProvider : " + currentProvider);
-                        locationListener = new LocationListener() {
-                            @Override
-                            public void onLocationChanged(Location location) {
-                                subscriber.onNext(location);
-                            }
-
-                            @Override
-                            public void onStatusChanged(String provider, int status, Bundle extras) {
-
-                            }
-
-                            @Override
-                            public void onProviderEnabled(String provider) {
-
-                            }
-
-                            @Override
-                            public void onProviderDisabled(String provider) {
-                                if(currentProvider.equals(provider)) {
-                                    Observable.error(new LocException(LocUtils.CODE_PROVIDE_DISABLED));
-                                }
-                            }
-                        };
-                        locationManager.requestLocationUpdates(currentProvider, LocUtils.TIME_BETWEEN_UPDATES_IN_MILLIS, MIN_DISTANCE_FOR_UPDATES_IN_METERS, locationListener);
-                        // Last Known Location
-                        Location location = getLastLocation(context);
-                        if(location != null) {
-                            subscriber.onNext(location);
+                    locationListener = new LocationListener() {
+                        @Override
+                        public void onLocationChanged(Location location) {
+                            doUpdateLocation(location, subscriber);
                         }
+
+                        @Override
+                        public void onStatusChanged(String provider, int status, Bundle extras) {
+                        }
+
+                        @Override
+                        public void onProviderEnabled(String provider) {
+                            LocUtils.log("onProviderEnabled : " + provider);
+                            Location location = getLastLocation(context);
+                            doUpdateLocation(location, subscriber);
+                        }
+
+                        @Override
+                        public void onProviderDisabled(String provider) {
+                            LocUtils.log("onProviderDisabled : " + provider);
+                        }
+                    };
+                    checkSettings(context);
+                    for(String provider : locationManager.getAllProviders()) {
+                        locationManager.requestLocationUpdates(provider, LocUtils.TIME_BETWEEN_UPDATES_IN_MILLIS, MIN_DISTANCE_FOR_UPDATES_IN_METERS, locationListener);
                     }
+                    Location location = getLastLocation(context);
+                    doUpdateLocation(location, subscriber);
                 }
                 catch(SecurityException e) {
                     Observable.error(e);
@@ -112,12 +100,24 @@ public class StandardLocationProvider implements ILocationProvider {
         }
     }
 
-    // ------------------->
+    // -------------------> Settings
 
-    private boolean checkProvidersIsEnabled(final Context context) {
+    private boolean checkSettings(final Context context) {
         boolean canContinue = true;
-        boolean isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-        boolean isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+        boolean isGPSEnabled = false;
+        boolean isNetworkEnabled = false;
+        try {
+            isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
+        }
+        catch(Exception e) {
+            LocUtils.logError(e);
+        }
+        try {
+            isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+        }
+        catch(Exception e) {
+            LocUtils.logError(e);
+        }
         if(!isNetworkEnabled || !isGPSEnabled) {
             canContinue = false;
             showLocationNotEnabledDialog(context);
@@ -144,7 +144,81 @@ public class StandardLocationProvider implements ILocationProvider {
         alertDialog.show();
     }
 
-    // ------------------->
+    // -------------------> Compare Locations
+
+    private void doUpdateLocation(Location location, Subscriber<? super Location> subscriber) {
+        LocUtils.log("New Location : " + location);
+        boolean isBetterLocation = false;
+        try {
+            isBetterLocation = isBetterLocation(location, lastLocation);
+        }
+        catch(Throwable e) {
+            LocUtils.logError(e);
+        }
+        if(isBetterLocation) {
+            lastLocation = location;
+            LocUtils.log("doUpdateLocation : " + lastLocation.getProvider());
+            subscriber.onNext(lastLocation);
+        }
+
+    }
+
+    protected boolean isBetterLocation(Location location, Location currentBestLocation) {
+        if(location == null) {
+            return false;
+        }
+
+        if(currentBestLocation == null) {
+            // A new location is always better than no location
+            return true;
+        }
+
+        // Check whether the new location fix is newer or older
+        long timeDelta = location.getTime() - currentBestLocation.getTime();
+        boolean isSignificantlyNewer = timeDelta > TWO_MINUTES;
+        boolean isSignificantlyOlder = timeDelta < -TWO_MINUTES;
+        boolean isNewer = timeDelta > 0;
+
+        // If it's been more than two minutes since the current location, use the new location
+        // because the user has likely moved
+        if(isSignificantlyNewer) {
+            return true;
+            // If the new location is more than two minutes older, it must be worse
+        }
+        else if(isSignificantlyOlder) {
+            return false;
+        }
+
+        // Check whether the new location fix is more or less accurate
+        int accuracyDelta = (int) (location.getAccuracy() - currentBestLocation.getAccuracy());
+        boolean isLessAccurate = accuracyDelta > 0;
+        boolean isMoreAccurate = accuracyDelta < 0;
+        boolean isSignificantlyLessAccurate = accuracyDelta > 200;
+
+        // Check if the old and new location are from the same provider
+        boolean isFromSameProvider = isSameProvider(location.getProvider(), currentBestLocation.getProvider());
+
+        // Determine location quality using a combination of timeliness and accuracy
+        if(isMoreAccurate) {
+            return true;
+        }
+        else if(isNewer && !isLessAccurate) {
+            return true;
+        }
+        else if(isNewer && !isSignificantlyLessAccurate && isFromSameProvider) {
+            return true;
+        }
+        return false;
+    }
+
+    private boolean isSameProvider(String provider1, String provider2) {
+        if(provider1 == null) {
+            return provider2 == null;
+        }
+        return provider1.equals(provider2);
+    }
+
+    // -------------------> Last Known Location
 
     private Location getLastLocation(Context context) {
         Location gpsLocation = getLastLocationByProvider(context, LocationManager.GPS_PROVIDER);
