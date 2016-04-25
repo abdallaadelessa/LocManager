@@ -6,6 +6,8 @@ import android.location.LocationManager;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
+import com.abdalladelessa.rxlocmanager.RxLocException;
+import com.afollestad.materialdialogs.MaterialDialog;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
 import com.karumi.dexter.Dexter;
@@ -30,13 +32,15 @@ public class RxLocUtils {
     //---->
     public static final int ERROR_CODE_CONTEXT_IS_NULL = 0;
     public static final int ERROR_CODE_PROVIDER_IS_NULL = 1;
-    public static final int ERROR_CODE_GOOGLE_PLAY_SERVICE_NOT_FOUND = 2;
-    public static final int ERROR_CODE_LOCATION_PERMISSION_DENIED = 3;
-    public static final int ERROR_CODE_GOOGLE_API_CONNECTION_FAILED_ERROR = 8;
+    public static final int ERROR_CODE_CHECKING_PERMISSION_IS_RUNNING = 2;
+    public static final int ERROR_CODE_GOOGLE_PLAY_SERVICE_NOT_FOUND = 3;
+    public static final int ERROR_CODE_LOCATION_PERMISSION_DENIED = 4;
+    public static final int ERROR_CODE_GOOGLE_API_CONNECTION_FAILED_ERROR = 5;
     //---->
     public static String TEXT_LOCATION_SETTINGS;
     public static String TEXT_LOCATION_IS_NOT_ENABLED_MESSAGE;
     public static String TEXT_SETTINGS;
+    public static String TEXT_RETRY;
     public static String TEXT_CANCEL;
     public static String ERROR_TEXT_COULDNT_RECEIVE_LOCATION;
     public static String ERROR_TEXT_COULDNT_FIND_GOOGLE_PLAY_SERVICE;
@@ -48,6 +52,7 @@ public class RxLocUtils {
         TEXT_LOCATION_SETTINGS = "Location Settings";
         TEXT_LOCATION_IS_NOT_ENABLED_MESSAGE = "Location is not enabled. Do you want to enable it in settings?";
         TEXT_SETTINGS = "Settings";
+        TEXT_RETRY = "Retry";
         TEXT_CANCEL = "Cancel";
         ERROR_TEXT_COULDNT_RECEIVE_LOCATION = "Cpuldnt retreive location";
         ERROR_TEXT_COULDNT_FIND_GOOGLE_PLAY_SERVICE = "Couldn't find Google Play Service";
@@ -97,6 +102,10 @@ public class RxLocUtils {
         return Observable.create(new Observable.OnSubscribe<Boolean>() {
             @Override
             public void call(final Subscriber<? super Boolean> subscriber) {
+                if(Dexter.isRequestOngoing()) {
+                    subscriber.onError(new RxLocException(ERROR_CODE_CHECKING_PERMISSION_IS_RUNNING));
+                    return;
+                }
                 Dexter.checkPermissions(new MultiplePermissionsListener() {
                     @Override
                     public void onPermissionsChecked(MultiplePermissionsReport report) {
@@ -119,16 +128,21 @@ public class RxLocUtils {
         });
     }
 
+    // -------------------->
+
     @NonNull
     public static String getRxLocErrorMessage(Throwable e) {
         String error = ERROR_TEXT_COULDNT_RECEIVE_LOCATION;
         if(e instanceof RxLocException) {
             switch(((RxLocException) e).getErrorCode()) {
                 case ERROR_CODE_CONTEXT_IS_NULL:
-                    RxLocUtils.log("getRxLocErrorMessage Context is null");
+                    RxLocUtils.logError(new Exception("getRxLocErrorMessage Context is null"));
                     break;
                 case ERROR_CODE_PROVIDER_IS_NULL:
-                    RxLocUtils.log("getRxLocErrorMessage Current Provider is null");
+                    RxLocUtils.logError(new Exception("getRxLocErrorMessage Current Provider is null"));
+                    break;
+                case ERROR_CODE_CHECKING_PERMISSION_IS_RUNNING:
+                    RxLocUtils.logError(new Exception("getRxLocErrorMessage Checking Permission is Running"));
                     break;
                 case ERROR_CODE_GOOGLE_PLAY_SERVICE_NOT_FOUND:
                     error = ERROR_TEXT_COULDNT_FIND_GOOGLE_PLAY_SERVICE;
@@ -139,5 +153,10 @@ public class RxLocUtils {
             }
         }
         return error;
+    }
+
+    public static MaterialDialog showLocationErrorDialog(Context mContext, Throwable throwable, boolean cancelable, MaterialDialog.SingleButtonCallback onPositive, MaterialDialog.SingleButtonCallback onNegative) {
+        if(throwable == null || throwable.getMessage() == null) return null;
+        return new MaterialDialog.Builder(mContext).content(getRxLocErrorMessage(throwable)).cancelable(cancelable).positiveText(TEXT_RETRY).negativeText(TEXT_CANCEL).onPositive(onPositive).onNegative(onNegative).show();
     }
 }

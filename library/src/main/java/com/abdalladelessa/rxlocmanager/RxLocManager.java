@@ -3,6 +3,8 @@ package com.abdalladelessa.rxlocmanager;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
 import android.os.Handler;
 
@@ -11,24 +13,29 @@ import com.abdalladelessa.rxlocmanager.providers.ILocationProvider;
 import com.abdalladelessa.rxlocmanager.providers.StandardLocationProvider;
 import com.karumi.dexter.Dexter;
 
+import java.util.List;
+import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
 
 import rx.Observable;
 import rx.Subscriber;
+import rx.android.schedulers.AndroidSchedulers;
 import rx.functions.Action0;
 import rx.functions.Action1;
 import rx.functions.Func1;
+import rx.schedulers.Schedulers;
 
 /**
  * Created by Abdullah.Essa on 4/24/2016.
  */
 public class RxLocManager {
+    private static final boolean MOCK_LOCATION = false;//GeneralUtils.isTestMode();
     private Handler mainHandler = new Handler();
     private ILocationProvider currentLocationProvider;
     private Timer settingsCheckerTimer;
 
-    public static void init(Context context){
+    public static void init(Context context) {
         Dexter.initialize(context);
         RxLocUtils.initResources(context);
     }
@@ -74,7 +81,36 @@ public class RxLocManager {
 
     // --------------------->
 
+    public static Observable<List<Address>> translateLocation(final Location location) {
+        return Observable.create(new Observable.OnSubscribe<List<Address>>() {
+            @Override
+            public void call(Subscriber<? super List<Address>> subscriber) {
+                Geocoder geocoder = new Geocoder(MyApplication.getAppContext(), Locale.getDefault());
+                try {
+                    List<Address> addresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
+                    subscriber.onNext(addresses);
+                    subscriber.onCompleted();
+                }
+                catch(Throwable e) {
+                    subscriber.onError(e);
+                }
+            }
+        }).observeOn(AndroidSchedulers.mainThread()).subscribeOn(Schedulers.io());
+    }
+
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if(currentLocationProvider != null) {
+            currentLocationProvider.onActivityResult(requestCode, resultCode, data);
+        }
+    }
+
     public Observable<Location> getLocationUpdates(final Context context) {
+        if(MOCK_LOCATION) {
+            Location location = new Location("");
+            location.setLatitude(30.0444);
+            location.setLongitude(31.2357);
+            return Observable.just(location);
+        }
         return Observable.create(new Observable.OnSubscribe<Boolean>() {
             @Override
             public void call(Subscriber<? super Boolean> subscriber) {
@@ -109,22 +145,21 @@ public class RxLocManager {
                     currentLocationProvider.askUserToEnableLocationSettingsIfNot((Activity) context);
                 }
             }
-        }));
+        })).doOnNext(new Action1<Location>() {
+            @Override
+            public void call(Location location) {
+                RxLocUtils.log("New Location : " + location);
+            }
+        });
     }
 
     public Observable<Location> getSingleLocation(final Context context) {
         return getLocationUpdates(context).first();
     }
 
-    public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if(currentLocationProvider != null) {
-            currentLocationProvider.onActivityResult(requestCode, resultCode, data);
-        }
-    }
-
     // ---------------------> Location Settings Timer
 
-    public Observable.Transformer<Location, Location> attachCheckLocationSettingsTimer(final Runnable onSettingsNotEnabledAction) {
+    private Observable.Transformer<Location, Location> attachCheckLocationSettingsTimer(final Runnable onSettingsNotEnabledAction) {
         return new Observable.Transformer<Location, Location>() {
             @Override
             public Observable<Location> call(Observable<Location> observable) {
@@ -183,6 +218,5 @@ public class RxLocManager {
             settingsCheckerTimer.cancel();
         }
     }
-
 
 }

@@ -2,16 +2,16 @@ package com.abdalladelessa.rxlocmanager.providers;
 
 import android.app.Activity;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.provider.Settings;
-import android.support.v7.app.AlertDialog;
 
 import com.abdalladelessa.rxlocmanager.RxLocUtils;
+import com.afollestad.materialdialogs.DialogAction;
+import com.afollestad.materialdialogs.MaterialDialog;
 
 import rx.Observable;
 import rx.Subscriber;
@@ -26,7 +26,7 @@ public class StandardLocationProvider implements ILocationProvider {
     private Location lastLocation;
     private LocationManager locationManager;
     private LocationListener locationListener;
-    private AlertDialog settingsAlertDialog;
+    private MaterialDialog settingsDialog;
 
     // ------------------->
 
@@ -87,25 +87,22 @@ public class StandardLocationProvider implements ILocationProvider {
     }
 
     public void askUserToEnableLocationSettingsIfNot(final Activity context) {
-        if(settingsAlertDialog != null) {
-            settingsAlertDialog.cancel();
+        if(settingsDialog != null) {
+            settingsDialog.cancel();
         }
-        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(context);
-        alertDialogBuilder.setTitle(RxLocUtils.TEXT_LOCATION_SETTINGS);
-        alertDialogBuilder.setMessage(RxLocUtils.TEXT_LOCATION_IS_NOT_ENABLED_MESSAGE);
-        alertDialogBuilder.setPositiveButton(RxLocUtils.TEXT_SETTINGS, new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int which) {
+        settingsDialog = new MaterialDialog.Builder(context).cancelable(false).title(RxLocUtils.TEXT_LOCATION_SETTINGS).content(RxLocUtils.TEXT_LOCATION_IS_NOT_ENABLED_MESSAGE).positiveText(RxLocUtils.TEXT_SETTINGS).negativeText(RxLocUtils.TEXT_CANCEL).onPositive(new MaterialDialog.SingleButtonCallback() {
+            @Override
+            public void onClick(MaterialDialog materialDialog, DialogAction dialogAction) {
                 Intent intent = new Intent(Settings.ACTION_LOCATION_SOURCE_SETTINGS);
                 context.startActivity(intent);
-                dialog.cancel();
+                materialDialog.cancel();
             }
-        });
-        alertDialogBuilder.setNegativeButton(RxLocUtils.TEXT_CANCEL, new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.cancel();
+        }).onNegative(new MaterialDialog.SingleButtonCallback() {
+            @Override
+            public void onClick(MaterialDialog materialDialog, DialogAction dialogAction) {
+                materialDialog.cancel();
             }
-        });
-        settingsAlertDialog = alertDialogBuilder.show();
+        }).show();
     }
 
     @Override
@@ -115,8 +112,8 @@ public class StandardLocationProvider implements ILocationProvider {
 
     public void disconnect() {
         try {
-            if(settingsAlertDialog != null) {
-                settingsAlertDialog.cancel();
+            if(settingsDialog != null) {
+                settingsDialog.cancel();
             }
             if(locationManager != null && locationListener != null) {
                 locationManager.removeUpdates(locationListener);
@@ -133,7 +130,7 @@ public class StandardLocationProvider implements ILocationProvider {
     // -------------------> Compare Locations
 
     private void doUpdateLocation(Location location, Subscriber<? super Location> subscriber) {
-        RxLocUtils.log("New Location : " + location);
+        RxLocUtils.log("doUpdateLocation : " + location);
         boolean isBetterLocation = false;
         try {
             isBetterLocation = isBetterLocation(location, lastLocation);
@@ -143,7 +140,6 @@ public class StandardLocationProvider implements ILocationProvider {
         }
         if(isBetterLocation) {
             lastLocation = location;
-            RxLocUtils.log("doUpdateLocation : " + lastLocation.getProvider());
             subscriber.onNext(lastLocation);
         }
 
